@@ -78,7 +78,7 @@ int main() {
     if (a_low == NULL) {
         printf("Failed to allocate tensor a_low.\n");
         munmap(g_lmem_base, CV181X_HW_LMEM_SIZE );
-        free(ctx.priv_data);
+        cvkcv181x_cleanup(&ctx);
         return -1;
     }
 
@@ -86,8 +86,8 @@ int main() {
     if (b_low == NULL) {
         printf("Failed to allocate tensor b_low.\n");
         munmap(g_lmem_base, CV181X_HW_LMEM_SIZE );
-        free(a_low);
-        free(ctx.priv_data);
+        cvkcv181x_lmem_free_tensor(&ctx,a_low);
+        cvkcv181x_cleanup(&ctx);
         return -1;
     }
 
@@ -95,9 +95,9 @@ int main() {
     if (res_low == NULL) {
         printf("Failed to allocate tensor res_low.\n");
         munmap(g_lmem_base, CV181X_HW_LMEM_SIZE );
-        free(a_low);
-        free(b_low);
-        free(ctx.priv_data);
+        cvkcv181x_lmem_free_tensor(&ctx,a_low);
+        cvkcv181x_lmem_free_tensor(&ctx,b_low);
+        cvkcv181x_cleanup(&ctx);
         return -1;
     }
 
@@ -115,10 +115,10 @@ int main() {
     if (a_high == NULL) {
         printf("Failed to allocate tensor a_high.\n");
         munmap(g_lmem_base, CV181X_HW_LMEM_SIZE );
-        free(a_low);
-        free(b_low);
-        free(res_low);
-        free(ctx.priv_data);
+        cvkcv181x_lmem_free_tensor(&ctx,a_low);
+        cvkcv181x_lmem_free_tensor(&ctx,b_low);
+        cvkcv181x_lmem_free_tensor(&ctx,res_low);
+        cvkcv181x_cleanup(&ctx);
         return -1;
     }
 
@@ -126,11 +126,11 @@ int main() {
     if (b_high == NULL) {
         printf("Failed to allocate tensor b_high.\n");
         munmap(g_lmem_base, CV181X_HW_LMEM_SIZE );
-        free(a_low);
-        free(b_low);
-        free(res_low);
-        free(a_high);
-        free(ctx.priv_data);
+        cvkcv181x_lmem_free_tensor(&ctx,a_low);
+        cvkcv181x_lmem_free_tensor(&ctx,b_low);
+        cvkcv181x_lmem_free_tensor(&ctx,res_low);
+        cvkcv181x_lmem_free_tensor(&ctx,a_high);
+        cvkcv181x_cleanup(&ctx);
         return -1;
     }
 
@@ -138,12 +138,12 @@ int main() {
     if (res_high == NULL) {
         printf("Failed to allocate tensor res_high.\n");
         munmap(g_lmem_base, CV181X_HW_LMEM_SIZE );
-        free(a_low);
-        free(b_low);
-        free(res_low);
-        free(a_high);
-        free(b_high);
-        free(ctx.priv_data);
+        cvkcv181x_lmem_free_tensor(&ctx,a_low);
+        cvkcv181x_lmem_free_tensor(&ctx,b_low);
+        cvkcv181x_lmem_free_tensor(&ctx,res_low);
+        cvkcv181x_lmem_free_tensor(&ctx,a_high);
+        cvkcv181x_lmem_free_tensor(&ctx,b_high);
+        cvkcv181x_cleanup(&ctx);
         return -1;
     }
 
@@ -190,13 +190,13 @@ int main() {
 
     // Free resources
     munmap(g_lmem_base, CV181X_HW_LMEM_SIZE ); // Unmap memory
-    free(a_low);
-    free(b_low);
-    free(res_low);
-    free(a_high);
-    free(b_high);
-    free(res_high);
-    free(ctx.priv_data);
+    cvkcv181x_lmem_free_tensor(&ctx,a_low);
+    cvkcv181x_lmem_free_tensor(&ctx,b_low);
+    cvkcv181x_lmem_free_tensor(&ctx,res_low);
+    cvkcv181x_lmem_free_tensor(&ctx,a_high);
+    cvkcv181x_lmem_free_tensor(&ctx,b_high);
+    cvkcv181x_lmem_free_tensor(&ctx,res_high);
+    cvkcv181x_cleanup(&ctx);
 
     return 0;
 }
