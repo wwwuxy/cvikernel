@@ -1,4 +1,4 @@
-// tiu_sub_cx181.c
+//test for cvkcv181x_tiu_sub
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
