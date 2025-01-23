@@ -16,16 +16,6 @@ cvk_context_t ctx;
 cvk_tl_t ifmap, table, ofmap;
 cvk_tiu_lookup_table_param_t param;
 
-void test_check_stride_type_0(cvk_context_t *ctx, cvk_tl_t *tensor) {
-    // In a real scenario, this would check that the tensor's stride matches type 0 expectations
-    assert(tensor->stride.n == 1 && tensor->stride.c == 1 && tensor->stride.h == 1 && tensor->stride.w == 1);
-}
-
-void test_check_tiu_tensor_3(cvk_tl_t *t1, cvk_tl_t *t2, cvk_tl_t *t3) {
-    // Assert that tensors t1, t2, and t3 are valid
-    assert(t1 != NULL && t2 != NULL && t3 != NULL);
-}
-
 void setup_test() {
     // Initialize context with mock values
     ctx.info.eu_num = 16;

@@ -1,23 +1,26 @@
 # tests/CMakeLists.txt
 
-# Collect all test source files,Test file names starting with "tiu_"
-file(GLOB TEST_SOURCES "tiu_*.c")
+# Set the directory where test source files are located
+set(TEST_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cv181x")
+
+# Collect all test source files with names starting with "tiu_"
+file(GLOB TEST_SOURCES "${TEST_DIR}/tiu_*.c")
 
 # Define a function to add tests
 function(add_cvikernel_test test_source)
-    # Extract test name (remove path and extension)
+    # Extract the test name by removing the path and file extension
     get_filename_component(test_name ${test_source} NAME_WE)
     
-    # Define an executable target name, such as test_tiu_add
+    # Define an executable target name, such as tiu_add_exe
     set(exe_name ${test_name}_exe)
     
-    # Add executable file
+    # Add the executable file target
     add_executable(${exe_name} ${test_source})
     
-    # Library
+    # Link the necessary libraries
     target_link_libraries(${exe_name} cvikernel m)
     
-    # Set the runtime path (if on UNIX system)
+    # Set the runtime path if on a UNIX system
     if(UNIX)
         set_target_properties(${exe_name} PROPERTIES
             BUILD_WITH_INSTALL_RPATH TRUE
@@ -25,11 +28,11 @@ function(add_cvikernel_test test_source)
         )
     endif()
     
-    # Register Test
+    # Register the test with CTest
     add_test(NAME ${test_name} COMMAND ${exe_name})
 endfunction()
 
-# Iterate through all test source files and add tests
+# Iterate through all test source files and add each as a test
 foreach(test_src ${TEST_SOURCES})
     add_cvikernel_test(${test_src})
 endforeach()

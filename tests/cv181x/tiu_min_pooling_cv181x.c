@@ -26,12 +26,6 @@ cvk_tl_t* create_tensor(cvk_fmt_t fmt, int n, int c, int h, int w, int start_add
     return tensor;
 }
 
-// Mock function to reset a TIU register (not strictly necessary for this demo)
-void reset_tiu_reg(tiu_reg_t* reg) {
-    memset(reg, 0, sizeof(tiu_reg_t));
-}
-
-
 static void fill_ifmap_data(cvk_tl_t *tensor) {
     int8_t* data = g_lmem + tensor->start_address;
     int n = tensor->shape.n;

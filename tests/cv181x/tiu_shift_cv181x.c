@@ -1,4 +1,4 @@
-//test for cvkcv181x_tiu_shift
+// test for cvkcv181x_tiu_shift
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -9,13 +9,18 @@
 #include <unistd.h>
 #include "../../src/cv181x/cvkcv181x.h"
 #include "../../include/cvikernel/cvikernel.h"
-#include "../../include/cvikernel/cv181x/cv181x_tpu_cfg.h"  // Include hardware configuration macro definitionsns
+#include "../../include/cvikernel/cv181x/cv181x_tpu_cfg.h"  // Include hardware configuration macro definitions
 
 // Helper to create a cvk_tl_t with allocated data
 cvk_tl_t* create_tensor(int n, int c, int h, int w,
                         int stride_n, int stride_c, int stride_h, int stride_w,
                         cvk_fmt_t fmt) {
     cvk_tl_t *tensor = (cvk_tl_t *)malloc(sizeof(cvk_tl_t));
+    if (!tensor) {
+        fprintf(stderr, "Failed to allocate memory for tensor.\n");
+        exit(EXIT_FAILURE);
+    }
+
     tensor->shape.n = n;
     tensor->shape.c = c;
     tensor->shape.h = h;
@@ -29,12 +34,16 @@ cvk_tl_t* create_tensor(int n, int c, int h, int w,
     // Allocate memory for tensor data in int8_t units
     size_t elem_count = (size_t)n * c * h * w;
     tensor->start_address = (uintptr_t)malloc(elem_count * sizeof(int8_t));
+    if (!tensor->start_address) {
+        fprintf(stderr, "Failed to allocate memory for tensor data.\n");
+        free(tensor);
+        exit(EXIT_FAILURE);
+    }
     return tensor;
 }
 
 
 // Create the param struct for arithmetic shift
-
 cvk_tiu_arith_shift_param_t
 create_arith_shift_param(cvk_tl_t *a_low, cvk_tl_t *a_high,
                          cvk_tl_t *res_low, cvk_tl_t *res_high,
@@ -53,8 +62,9 @@ create_arith_shift_param(cvk_tl_t *a_low, cvk_tl_t *a_high,
 
 // Fill the input low/high parts with predictable patterns
 static void fill_input_16bit(cvk_tl_t* low, cvk_tl_t* high, int base_low, int base_high) {
-    int8_t* low_ptr  = (int8_t*)low->start_address;
-    int8_t* high_ptr = (int8_t*)high->start_address;
+    // 使用 uintptr_t 进行安全的整数到指针转换
+    int8_t* low_ptr  = (int8_t*)(uintptr_t)(low->start_address);
+    int8_t* high_ptr = (int8_t*)(uintptr_t)(high->start_address);
     int N = low->shape.n;  // same shape as high->shape
     int C = low->shape.c;
     int H = low->shape.h;
@@ -76,13 +86,13 @@ static void fill_input_16bit(cvk_tl_t* low, cvk_tl_t* high, int base_low, int ba
 
 // Fill the shift amounts
 static void fill_shift_bits(cvk_tl_t* bits) {
-    int8_t* ptr = (int8_t*)bits->start_address;
+    int8_t* ptr = (int8_t*)(uintptr_t)(bits->start_address);
     int N = bits->shape.n;  // e.g. 1
     int C = bits->shape.c;  // e.g. 3
     int H = bits->shape.h;  // e.g. 1
     int W = bits->shape.w;  // e.g. 1
     // total shift values
-    size_t total = (size_t)N*C*H*W;
+    size_t total = (size_t)N * C * H * W;
 
     // Example: if we have 3 channels, store shift amounts: -2, 3, 1
     // Or cycle through some pattern
@@ -99,9 +109,9 @@ static void fill_shift_bits(cvk_tl_t* bits) {
 static void ref_arith_shift(const cvk_tl_t* a_low, const cvk_tl_t* a_high,
                             const cvk_tl_t* bits,
                             int8_t* ref_out_low, int8_t* ref_out_high) {
-    const int8_t* al = (const int8_t*)a_low->start_address;
-    const int8_t* ah = (const int8_t*)a_high->start_address;
-    const int8_t* b  = (const int8_t*)bits->start_address;
+    const int8_t* al = (const int8_t*)(uintptr_t)(a_low->start_address);
+    const int8_t* ah = (const int8_t*)(uintptr_t)(a_high->start_address);
+    const int8_t* b  = (const int8_t*)(uintptr_t)(bits->start_address);
 
     int N = a_low->shape.n;
     int C = a_low->shape.c;
@@ -159,17 +169,16 @@ static void ref_arith_shift(const cvk_tl_t* a_low, const cvk_tl_t* a_high,
 
 
 // Compare the hardware result with the reference
-
 static void compare_arith_shift(const cvk_tl_t* res_low, const cvk_tl_t* res_high,
                                 const int8_t* ref_out_low, const int8_t* ref_out_high) {
-    const int8_t* rl = (const int8_t*)res_low->start_address;
-    const int8_t* rh = (const int8_t*)res_high->start_address;
+    const int8_t* rl = (const int8_t*)(uintptr_t)(res_low->start_address);
+    const int8_t* rh = (const int8_t*)(uintptr_t)(res_high->start_address);
 
     int N = res_low->shape.n;
     int C = res_low->shape.c;
     int H = res_low->shape.h;
     int W = res_low->shape.w;
-    size_t total = (size_t)N*C*H*W;
+    size_t total = (size_t)N * C * H * W;
 
     for (size_t i = 0; i < total; i++) {
         if (rl[i] != ref_out_low[i]) {
@@ -188,7 +197,6 @@ static void compare_arith_shift(const cvk_tl_t* res_low, const cvk_tl_t* res_hig
 
 
 // Main test function
-
 int main() {
     // Create mock tensors for a_low, a_high, res_low, res_high, and bits
     cvk_tl_t *a_low   = create_tensor(1, 3, 32, 32, 32, 32, 1, 1, CVK_FMT_I8);
@@ -202,6 +210,10 @@ int main() {
         create_arith_shift_param(a_low, a_high, res_low, res_high, bits);
 
     cvk_context_t *ctx = (cvk_context_t *)malloc(sizeof(cvk_context_t));
+    if (!ctx) {
+        fprintf(stderr, "Failed to allocate memory for context.\n");
+        exit(EXIT_FAILURE);
+    }
     memset(ctx, 0, sizeof(*ctx));
 
     fill_input_16bit(a_low, a_high, /*base_low=*/0x30, /*base_high=*/0x01);
@@ -213,12 +225,16 @@ int main() {
     printf("Arithmetic Shift operation executed.\n");
 
     int N = a_low->shape.n, C = a_low->shape.c, H = a_low->shape.h, W = a_low->shape.w;
-    size_t total = (size_t)N*C*H*W;
+    size_t total = (size_t)N * C * H * W;
 
     int8_t* ref_out_low  = (int8_t*)malloc(total * sizeof(int8_t));
     int8_t* ref_out_high = (int8_t*)malloc(total * sizeof(int8_t));
-    memset(ref_out_low,  0, total);
-    memset(ref_out_high, 0, total);
+    if (!ref_out_low || !ref_out_high) {
+        fprintf(stderr, "Failed to allocate memory for reference outputs.\n");
+        exit(EXIT_FAILURE);
+    }
+    memset(ref_out_low,  0, total * sizeof(int8_t));
+    memset(ref_out_high, 0, total * sizeof(int8_t));
 
     ref_arith_shift(a_low, a_high, bits, ref_out_low, ref_out_high);
     compare_arith_shift(res_low, res_high, ref_out_low, ref_out_high);
@@ -227,11 +243,12 @@ int main() {
     free(ref_out_low);
     free(ref_out_high);
 
-    free((void*)a_low->start_address);
-    free((void*)a_high->start_address);
-    free((void*)res_low->start_address);
-    free((void*)res_high->start_address);
-    free((void*)bits->start_address);
+    // 使用 uintptr_t 进行安全的整数到指针转换
+    free((void*)(uintptr_t)a_low->start_address);
+    free((void*)(uintptr_t)a_high->start_address);
+    free((void*)(uintptr_t)res_low->start_address);
+    free((void*)(uintptr_t)res_high->start_address);
+    free((void*)(uintptr_t)bits->start_address);
     free(a_low);
     free(a_high);
     free(res_low);
