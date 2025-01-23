@@ -1,14 +1,27 @@
-#include <assert.h>
+//test for cvkcv181x_tiu_lookup_table
+#include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
-#include "cvkcv181x.h"
+#include <stdint.h>
+#include <assert.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include "../../src/cv181x/cvkcv181x.h"
+#include "../../include/cvikernel/cvikernel.h"
+#include "../../include/cvikernel/cv181x/cv181x_tpu_cfg.h"  // Include hardware configuration macro definitions
 
 // Mock helper functions and structures
-void test_check_stride_type_0(cvk_context_t *ctx, cvk_tensor_t *tensor) {
+cvk_context_t ctx;
+cvk_tl_t ifmap, table, ofmap;
+cvk_tiu_lookup_table_param_t param;
+
+void test_check_stride_type_0(cvk_context_t *ctx, cvk_tl_t *tensor) {
     // In a real scenario, this would check that the tensor's stride matches type 0 expectations
     assert(tensor->stride.n == 1 && tensor->stride.c == 1 && tensor->stride.h == 1 && tensor->stride.w == 1);
 }
 
-void test_check_tiu_tensor_3(cvk_tensor_t *t1, cvk_tensor_t *t2, cvk_tensor_t *t3) {
+void test_check_tiu_tensor_3(cvk_tl_t *t1, cvk_tl_t *t2, cvk_tl_t *t3) {
     // Assert that tensors t1, t2, and t3 are valid
     assert(t1 != NULL && t2 != NULL && t3 != NULL);
 }

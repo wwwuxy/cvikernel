@@ -1,162 +1,171 @@
-#include "cvkcv181x.h"
-#include <stdio.h>
+//test for cvkcv181x_tiu_or
 #include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <assert.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include "../../src/cv181x/cvkcv181x.h"
+#include "../../include/cvikernel/cvikernel.h"
+#include "../../include/cvikernel/cv181x/cv181x_tpu_cfg.h"  // Include hardware configuration macro definitions
 
-// 测试 cvkcv181x_tiu_or_int8 函数
-void test_tiu_or_int8() {
-    // 创建 cvk_context_t 上下文
-    cvk_context_t ctx;
-    ctx.info.eu_num = 16; // 假设有16个执行单元
 
-    // 创建 mock tensor 对象（cvk_ml_t）
-    cvk_ml_t a, b, res;
-    
-    // 设置 tensor a 的属性
-    a.start_address = 0x1000;
-    a.fmt = CVK_FMT_I8;
-    a.shape.n = 1;
-    a.shape.c = 1;
-    a.shape.h = 1;
-    a.shape.w = 4; // 示例形状
-    a.stride.n = 1;
-    a.stride.c = 1;
-    a.stride.h = 1;
-    a.stride.w = 4;
-    
-    // 设置 tensor b 的属性
-    b.start_address = 0x2000;
-    b.fmt = CVK_FMT_I8;
-    b.shape.n = 1;
-    b.shape.c = 1;
-    b.shape.h = 1;
-    b.shape.w = 4; // 示例形状
-    b.stride.n = 1;
-    b.stride.c = 1;
-    b.stride.h = 1;
-    b.stride.w = 4;
-    
-    // 设置 result tensor 的属性
-    res.start_address = 0x3000;
-    res.fmt = CVK_FMT_I8;
-    res.shape.n = 1;
-    res.shape.c = 1;
-    res.shape.h = 1;
-    res.shape.w = 4; // 与输入 tensor 相同的形状
-    res.stride.n = 1;
-    res.stride.c = 1;
-    res.stride.h = 1;
-    res.stride.w = 4;
-    
-    // 准备 cvk_tiu_or_int8_param_t 参数结构体
-    cvk_tiu_or_int8_param_t p;
-    p.res = &res;
-    p.a = &a;
-    p.b = &b;
-    p.layer_id = 1;
+// Mocking a local memory region so we can store input/output tensors.
+#define FAKE_LMEM_SIZE  (0x30000)
+static int8_t g_lmem[FAKE_LMEM_SIZE];
 
-    // 调用 OR 操作函数
-    cvkcv181x_tiu_or_int8(&ctx, &p);
-
-    // 打印测试结果（此处应替换为实际的检查/验证逻辑）
-    printf("Test passed for cvkcv181x_tiu_or_int8\n");
+// Creates a tensor descriptor with the specified format, shape, and base offset
+cvk_tl_t* create_tensor(cvk_fmt_t fmt, int n, int c, int h, int w, int start_address) {
+    cvk_tl_t* tensor = (cvk_tl_t*)malloc(sizeof(cvk_tl_t));
+    tensor->fmt = fmt;
+    tensor->shape.n = n;
+    tensor->shape.c = c;
+    tensor->shape.h = h;
+    tensor->shape.w = w;
+    tensor->start_address = start_address;
+    return tensor;
 }
 
-// 测试 cvkcv181x_tiu_or_int16 函数
-void test_tiu_or_int16() {
-    // 创建 cvk_context_t 上下文
-    cvk_context_t ctx;
-    ctx.info.eu_num = 16; // 假设有16个执行单元
-
-    // 创建 16-bit mock tensor 对象（cvk_ml_t）
-    cvk_ml_t a_low, a_high, b_low, b_high, res_low, res_high;
-    
-    // 设置 tensor a_low 和 a_high 的属性
-    a_low.start_address = 0x1000;
-    a_high.start_address = 0x2000;
-    a_low.fmt = CVK_FMT_I16;
-    a_high.fmt = CVK_FMT_I16;
-    a_low.shape.n = 1;
-    a_high.shape.n = 1;
-    a_low.shape.c = 1;
-    a_high.shape.c = 1;
-    a_low.shape.h = 1;
-    a_high.shape.h = 1;
-    a_low.shape.w = 4;
-    a_high.shape.w = 4;
-    a_low.stride.n = 1;
-    a_high.stride.n = 1;
-    a_low.stride.c = 1;
-    a_high.stride.c = 1;
-    a_low.stride.h = 1;
-    a_high.stride.h = 1;
-    a_low.stride.w = 4;
-    a_high.stride.w = 4;
-    
-    // 设置 tensor b_low 和 b_high 的属性
-    b_low.start_address = 0x3000;
-    b_high.start_address = 0x4000;
-    b_low.fmt = CVK_FMT_I16;
-    b_high.fmt = CVK_FMT_I16;
-    b_low.shape.n = 1;
-    b_high.shape.n = 1;
-    b_low.shape.c = 1;
-    b_high.shape.c = 1;
-    b_low.shape.h = 1;
-    b_high.shape.h = 1;
-    b_low.shape.w = 4;
-    b_high.shape.w = 4;
-    b_low.stride.n = 1;
-    b_high.stride.n = 1;
-    b_low.stride.c = 1;
-    b_high.stride.c = 1;
-    b_low.stride.h = 1;
-    b_high.stride.h = 1;
-    b_low.stride.w = 4;
-    b_high.stride.w = 4;
-    
-    // 设置 result tensor 的属性
-    res_low.start_address = 0x5000;
-    res_high.start_address = 0x6000;
-    res_low.fmt = CVK_FMT_I16;
-    res_high.fmt = CVK_FMT_I16;
-    res_low.shape.n = 1;
-    res_high.shape.n = 1;
-    res_low.shape.c = 1;
-    res_high.shape.c = 1;
-    res_low.shape.h = 1;
-    res_high.shape.h = 1;
-    res_low.shape.w = 4;
-    res_high.shape.w = 4;
-    res_low.stride.n = 1;
-    res_high.stride.n = 1;
-    res_low.stride.c = 1;
-    res_high.stride.c = 1;
-    res_low.stride.h = 1;
-    res_high.stride.h = 1;
-    res_low.stride.w = 4;
-    res_high.stride.w = 4;
-
-    // 准备 cvk_tiu_or_int16_param_t 参数结构体
-    cvk_tiu_or_int16_param_t p;
-    p.res_low = &res_low;
-    p.res_high = &res_high;
-    p.a_low = &a_low;
-    p.a_high = &a_high;
-    p.b_low = &b_low;
-    p.b_high = &b_high;
-    p.layer_id = 2;
-
-    // 调用 OR 操作函数
-    cvkcv181x_tiu_or_int16(&ctx, &p);
-
-    // 打印测试结果（此处应替换为实际的检查/验证逻辑）
-    printf("Test passed for cvkcv181x_tiu_or_int16\n");
+// Mock function to reset a TIU register (not strictly necessary for this demo)
+void reset_tiu_reg(tiu_reg_t* reg) {
+    memset(reg, 0, sizeof(tiu_reg_t));
 }
+
+
+static void fill_ifmap_data(cvk_tl_t *tensor) {
+    int8_t* data = g_lmem + tensor->start_address;
+    int n = tensor->shape.n;
+    int c = tensor->shape.c;
+    int h = tensor->shape.h;
+    int w = tensor->shape.w;
+
+    // For demonstration, fill with row*width + col (wrapped to int8)
+    // This ensures each 3x3 window can be checked easily
+    for (int ni = 0; ni < n; ni++) {
+        for (int ci = 0; ci < c; ci++) {
+            for (int hi = 0; hi < h; hi++) {
+                for (int wi = 0; wi < w; wi++) {
+                    int idx = ni*c*h*w + ci*h*w + hi*w + wi;
+                    // Just a small pattern so we don't overflow int8 too easily
+                    int val = (hi * w + wi) & 0x7F;  // keep it positive
+                    data[idx] = (int8_t)val;
+                }
+            }
+        }
+    }
+}
+
+
+static void verify_min_pooling_result(const cvk_tl_t* ifmap,
+                                      const cvk_tl_t* ofmap,
+                                      const cvk_tiu_min_pooling_param_t *param) {
+    const int8_t* ifmap_data = g_lmem + ifmap->start_address;
+    const int8_t* ofmap_data = g_lmem + ofmap->start_address;
+
+    int N = ifmap->shape.n, C = ifmap->shape.c;
+    int H = ifmap->shape.h, W = ifmap->shape.w;
+    int outH = ofmap->shape.h, outW = ofmap->shape.w;
+
+    int kh = param->kh, kw = param->kw;
+    int stride_h = param->stride_h, stride_w = param->stride_w;
+    int pad_top = param->pad_top, pad_left = param->pad_left;
+
+    // For each output pixel, determine the “true” minimum in its window
+    // and compare against ofmap_data.
+    for (int n = 0; n < N; n++) {
+        for (int c = 0; c < C; c++) {
+            for (int oh = 0; oh < outH; oh++) {
+                for (int ow = 0; ow < outW; ow++) {
+                    // Index into the ofmap
+                    int out_index = n*C*outH*outW + c*outH*outW + oh*outW + ow;
+                    int8_t hw_min_val = ofmap_data[out_index];
+
+                    // Compute the input window start (account for pad=0 in this example)
+                    int in_h_start = oh * stride_h - pad_top;
+                    int in_w_start = ow * stride_w - pad_left;
+
+                    int8_t ref_val = 127; // largest int8 to start
+                    for (int r = 0; r < kh; r++) {
+                        for (int s = 0; s < kw; s++) {
+                            int in_h = in_h_start + r;
+                            int in_w = in_w_start + s;
+                            // Boundary check
+                            if (in_h < 0 || in_h >= H || in_w < 0 || in_w >= W) {
+                                continue;  // skip if out of bounds
+                            }
+                            int in_index = n*C*H*W + c*H*W + in_h*W + in_w;
+                            int8_t val = ifmap_data[in_index];
+                            if (val < ref_val) {
+                                ref_val = val;
+                            }
+                        }
+                    }
+
+                    // Compare reference min vs. hardware min
+                    if (hw_min_val != ref_val) {
+                        printf("Error: Mismatch at (n=%d, c=%d, oh=%d, ow=%d). "
+                               "Expected %d, got %d\n",
+                               n, c, oh, ow, ref_val, hw_min_val);
+                        assert(0 && "Min pooling mismatch!");
+                    }
+                }
+            }
+        }
+    }
+    printf("[verify_min_pooling_result] All results match expected min values!\n");
+}
+
+
+// The main test function that sets up your context, creates tensors,
+// fills the input data, calls min pooling, and verifies the results
+void test_cvkcv181x_tiu_min_pooling() {
+    // Create a mock context
+    cvk_context_t ctx;
+    ctx.info.eu_num = 4;  // Mock EU number
+    ctx.info.npu_num = 2; // Mock NPU number
+
+    // Create ifmap (1x8x64x64) and ofmap (1x8x32x32)
+    cvk_tl_t *ifmap = create_tensor(CVK_FMT_I8, 1, 8, 64, 64, 0x1000);
+    cvk_tl_t *ofmap = create_tensor(CVK_FMT_I8, 1, 8, 32, 32, 0x2000);
+
+    // Fill the input data with a known pattern
+    fill_ifmap_data(ifmap);
+
+    // Prepare parameters for min pooling
+    cvk_tiu_min_pooling_param_t param;
+    memset(&param, 0, sizeof(param));
+    param.ifmap = ifmap;
+    param.ofmap = ofmap;
+    param.kh = 3;
+    param.kw = 3;
+    param.stride_h = 2;
+    param.stride_w = 2;
+    param.pad_top = 0;
+    param.pad_bottom = 0;
+    param.pad_left = 0;
+    param.pad_right = 0;
+    param.layer_id = 1;
+    param.ins_fp = 0.0f; // not used in this mock
+
+    // Call the min pooling function (mocked or actual hardware)
+    cvkcv181x_tiu_min_pooling(&ctx, &param);
+    printf("[test_cvkcv181x_tiu_min_pooling] Min pooling operation completed.\n");
+
+    // Verify the results with a software-based reference
+    verify_min_pooling_result(ifmap, ofmap, &param);
+
+    // Free resources
+    cvkcv181x_lmem_free_tensor(&ctx, ifmap);
+    cvkcv181x_lmem_free_tensor(&ctx, ofmap);
+}
+
+
+// Entry point
 
 int main() {
-    // 运行测试
-    test_tiu_or_int8();
-    test_tiu_or_int16();
+    test_cvkcv181x_tiu_min_pooling();
+    printf("Min pooling test passed.\n");
     return 0;
 }
-

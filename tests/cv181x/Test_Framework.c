@@ -27,14 +27,14 @@ int main() {
 
     // 3. Tensor allocation
     uint32_t tensor_size = 0x1000; // 4KB
-    cvk_tensor_t *a_low = cvk_cv181x_ops.lmem_alloc_tensor(ctx, tensor_size);
-    cvk_tensor_t *b_low = cvk_cv181x_ops.lmem_alloc_tensor(ctx, tensor_size);
-    cvk_tensor_t *res_low = cvk_cv181x_ops.lmem_alloc_tensor(ctx, tensor_size);
+    cvk_tl_t *a_low = cvk_cv181x_ops.lmem_alloc_tensor(ctx, tensor_size);
+    cvk_tl_t *b_low = cvk_cv181x_ops.lmem_alloc_tensor(ctx, tensor_size);
+    cvk_tl_t *res_low = cvk_cv181x_ops.lmem_alloc_tensor(ctx, tensor_size);
     CHECK(a_low != NULL && b_low != NULL && res_low != NULL, "Unable to allocate tensor。");
 
     // 4. Initialize tensor
-    cvk_shape_t shape = {1, 1, 16, 16}; // Example shape:Batch=1, Channel=1, Height=16, Width=16
-    cvk_stride_t stride = {16, 16, 256, 256}; // Example stride
+    cvk_tl_shape_t shape = {1, 1, 16, 16}; // Example shape:Batch=1, Channel=1, Height=16, Width=16
+    cvk_tl_stride_t stride = {16, 16, 256, 256}; // Example stride
 
     cvk_cv181x_ops.lmem_init_tensor(ctx, a_low, CVK_FMT_BF16, shape, NULL);
     cvk_cv181x_ops.lmem_init_tensor(ctx, b_low, CVK_FMT_BF16, shape, NULL);

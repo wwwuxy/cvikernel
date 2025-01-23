@@ -1,9 +1,18 @@
-#include <assert.h>
+//test for cvkcv181x_tiu_ge
+#include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
-#include "cvkcv181x.h"
+#include <stdint.h>
+#include <assert.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include "../../src/cv181x/cvkcv181x.h"
+#include "../../include/cvikernel/cvikernel.h"
+#include "../../include/cvikernel/cv181x/cv181x_tpu_cfg.h"  // Include hardware configuration macro definitions
 
 // Mocked helper functions and structures
-void test_check_same_shape(cvk_tensor_t *t1, cvk_tensor_t *t2) {
+void test_check_same_shape(cvk_tl_t *t1, cvk_tl_t *t2) {
     // Assert that tensors t1 and t2 have the same shape
     assert(t1->shape.n == t2->shape.n);
     assert(t1->shape.c == t2->shape.c);
@@ -11,13 +20,13 @@ void test_check_same_shape(cvk_tensor_t *t1, cvk_tensor_t *t2) {
     assert(t1->shape.w == t2->shape.w);
 }
 
-void test_check_tiu_tensor_2(cvk_tensor_t *t1, cvk_tensor_t *t2) {
+void test_check_tiu_tensor_2(cvk_tl_t *t1, cvk_tl_t *t2) {
     // Assert that tensors t1 and t2 are valid
     assert(t1 != NULL && t2 != NULL);
 }
 
 // Mock tensor and parameter setup
-cvk_tensor_t a, b, ge, b_const;
+cvk_tl_t a, b, ge, b_const;
 cvk_tiu_ge_param_t param;
 cvk_context_t ctx;
 
@@ -32,7 +41,7 @@ void setup_test() {
     a.stride.c = 3;
     a.stride.h = 32;
     a.stride.w = 32;
-    a.fmt = CVK_FMT_INT8;
+    a.fmt = CVK_FMT_I8;
 
     // Initialize tensor b
     b.start_address = 0x2000;
@@ -44,7 +53,7 @@ void setup_test() {
     b.stride.c = 3;
     b.stride.h = 32;
     b.stride.w = 32;
-    b.fmt = CVK_FMT_INT8;
+    b.fmt = CVK_FMT_I8;
 
     // Initialize tensor ge
     ge.start_address = 0x3000;
@@ -56,7 +65,7 @@ void setup_test() {
     ge.stride.c = 3;
     ge.stride.h = 32;
     ge.stride.w = 32;
-    ge.fmt = CVK_FMT_INT8;
+    ge.fmt = CVK_FMT_I8;
 
     // Initialize parameter struct
     param.a = &a;

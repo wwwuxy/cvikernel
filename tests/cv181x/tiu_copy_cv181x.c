@@ -1,90 +1,127 @@
+#include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <assert.h>
-#include "cvkcv181x.h"
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include "../../src/cv181x/cvkcv181x.h"
+#include "../../include/cvikernel/cvikernel.h"
+#include "../../include/cvikernel/cv181x/cv181x_tpu_cfg.h"  // Include hardware configuration macro definitions
 
-// Mock for emitting the command buffer (can be extended for actual verification)
-void *emit_tiu_cmdbuf(cvk_context_t *ctx, tiu_reg_t *reg) {
-    printf("Emitting command buffer for Tensor Copy:\n");
-    printf("Command enabled: %d\n", reg->cmd_en);
-    printf("Task type: %d\n", reg->tsk_typ);
-    printf("Source Address: 0x%lx\n", reg->opd0_addr);
-    printf("Destination Address: 0x%lx\n", reg->res0_addr);
-    printf("Layer Info: %d\n", reg->layer_info);
-    return NULL; // No real action, just a placeholder
-}
+static uint8_t* g_src_buffer = NULL;
+static uint8_t* g_dst_buffer = NULL;
 
-// Mock for checking tensor shapes (validates the dimensions are the same)
-int check_same_shape(cvk_tensor_t *dst, cvk_tensor_t *src) {
+// Mock: Checks whether two tensors have the same shape.
+int check_same_shape(const cvk_tl_t *dst, const cvk_tl_t *src) {
     return (dst->shape.n == src->shape.n &&
             dst->shape.c == src->shape.c &&
             dst->shape.h == src->shape.h &&
             dst->shape.w == src->shape.w) ? 0 : -1;
 }
 
-// Mock for checking tensor strides (validates the strides are within the range)
-int check_stride_range(cvk_tensor_stride_t stride) {
+// Mock: Checks if tensor stride values are within a valid range.
+int check_stride_range(cvk_tl_stride_t stride) {
     return (stride.n > 0 && stride.c > 0 && stride.h > 0 && stride.w > 0) ? 0 : -1;
 }
 
-// Test function for tensor copy
+// Calculates the total number of elements in the tensor.
+static size_t tensor_element_count(const cvk_tl_t* t) {
+    return (size_t)t->shape.n * t->shape.c * t->shape.h * t->shape.w;
+}
+
+// Computes the memory size in bytes for a given tensor.
+static size_t tensor_byte_size(const cvk_tl_t* t) {
+    if (t->fmt == CVK_FMT_BF16) {
+        return tensor_element_count(t) * 2;
+    }
+    // For other formats, add the respective calculation...
+    return 0;
+}
+
 void test_cvkcv181x_tiu_copy() {
     cvk_context_t ctx;
     cvk_tiu_copy_param_t p;
 
-    // Setup mock context (mocking values for the sake of testing)
-    ctx.info.lmem_size = 1024; // Mock value for local memory size
-    ctx.info.eu_num = 8; // Mock value for the number of execution units
+    // Initialize mock context
+    ctx.info.lmem_size = 1024; // Mock local memory size
+    ctx.info.eu_num = 8;       // Mock number of EUs
 
-    // Setup mock tensor shapes and data for src and dst
-    p.src = (cvk_tensor_t *)malloc(sizeof(cvk_tensor_t));
-    p.dst = (cvk_tensor_t *)malloc(sizeof(cvk_tensor_t));
+    cvk_tl_t* src_tl = (cvk_tl_t *)malloc(sizeof(cvk_tl_t));
+    cvk_tl_t* dst_tl = (cvk_tl_t *)malloc(sizeof(cvk_tl_t));
+    assert(src_tl && dst_tl);
 
-    // Mock shape values (example)
-    p.src->shape.n = 1;
-    p.src->shape.c = 16;
-    p.src->shape.h = 28;
-    p.src->shape.w = 28;
+    // Set shapes
+    src_tl->shape.n = 1;
+    src_tl->shape.c = 16;
+    src_tl->shape.h = 28;
+    src_tl->shape.w = 28;
 
-    p.dst->shape.n = 1;
-    p.dst->shape.c = 16;
-    p.dst->shape.h = 28;
-    p.dst->shape.w = 28;
+    dst_tl->shape.n = 1;
+    dst_tl->shape.c = 16;
+    dst_tl->shape.h = 28;
+    dst_tl->shape.w = 28;
 
-    // Mock tensor start addresses (aligned to some boundary for simplicity)
-    p.src->start_address = 0x1000;
-    p.dst->start_address = 0x2000;
+    // Set strides
+    src_tl->stride.n = 16;
+    src_tl->stride.c = 16;
+    src_tl->stride.h = 28;
+    src_tl->stride.w = 28;
 
-    // Mock stride values
-    p.src->stride.n = 16;
-    p.src->stride.c = 16;
-    p.src->stride.h = 28;
-    p.src->stride.w = 28;
+    dst_tl->stride.n = 16;
+    dst_tl->stride.c = 16;
+    dst_tl->stride.h = 28;
+    dst_tl->stride.w = 28;
 
-    p.dst->stride.n = 16;
-    p.dst->stride.c = 16;
-    p.dst->stride.h = 28;
-    p.dst->stride.w = 28;
+    // Set format
+    src_tl->fmt = CVK_FMT_BF16;
+    dst_tl->fmt = CVK_FMT_BF16;
 
-    // Mock format and layer ID
-    p.src->fmt = CVK_FMT_BF16;
-    p.dst->fmt = CVK_FMT_BF16;
+    p.src = src_tl;
+    p.dst = dst_tl;
     p.layer_id = 1;
+
+    // Allocate actual storage buffers (simulating hardware memory)
+    size_t src_size = tensor_byte_size(src_tl);
+    size_t dst_size = tensor_byte_size(dst_tl);
+
+    // Allocate and zero the buffers
+    g_src_buffer = (uint8_t*)malloc(src_size);
+    g_dst_buffer = (uint8_t*)malloc(dst_size);
+    memset(g_src_buffer, 0, src_size);
+    memset(g_dst_buffer, 0, dst_size);
+
+    // Assign start addresses (simulate hardware local memory or address offsets).
+    src_tl->start_address = (uint64_t)(uintptr_t)g_src_buffer;
+    dst_tl->start_address = (uint64_t)(uintptr_t)g_dst_buffer;
+
+    // Fill the src buffer with known data for verification
+    for (size_t i = 0; i < src_size; i++) {
+        g_src_buffer[i] = (uint8_t)(i & 0xFF);
+    }
 
     // Call the copy function
     cvkcv181x_tiu_copy(&ctx, &p);
 
-    // Verify that the function emitted the expected command buffer
-    // You could expand this test by validating the contents of the generated register
-    // (by checking the `reg` content before calling `emit_tiu_cmdbuf`).
-    printf("Test complete.\n");
+    // Compare the destination buffer and source buffer to check if they match.
+    if (memcmp(g_src_buffer, g_dst_buffer, src_size) == 0) {
+        printf("Tensor copy test PASS: destination data matches source.\n");
+    } else {
+        printf("Tensor copy test FAIL: destination data does NOT match source.\n");
+    }
 
-    // Clean up
-    free(p.src);
-    free(p.dst);
+    // Cleanup
+    printf("Test complete.\n");
+    free(src_tl);
+    free(dst_tl);
+    free(g_src_buffer);
+    free(g_dst_buffer);
+    g_src_buffer = NULL;
+    g_dst_buffer = NULL;
 }
 
 int main() {
     test_cvkcv181x_tiu_copy();
     return 0;
 }
-

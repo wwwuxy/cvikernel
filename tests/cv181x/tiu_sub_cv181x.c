@@ -7,9 +7,9 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include "../src/cv181x/cvkcv181x.h"
-#include "../include/cvikernel/cvikernel.h"
-#include "../include/cvikernel/cv181x/cv181x_tpu_cfg.h"  // Include hardware configuration macro definitions
+#include "../../src/cv181x/cvkcv181x.h"
+#include "../../include/cvikernel/cvikernel.h"
+#include "../../include/cvikernel/cv181x/cv181x_tpu_cfg.h"  // Include hardware configuration macro definitionsns
 
 uint8_t *g_lmem_base = NULL;
 

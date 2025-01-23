@@ -1,6 +1,15 @@
+//test for cvkcv181x_tiu_and
+#include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <assert.h>
-#include "cvkcv181x.h"
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include "../../src/cv181x/cvkcv181x.h"
+#include "../../include/cvikernel/cvikernel.h"
+#include "../../include/cvikernel/cv181x/cv181x_tpu_cfg.h"  // Include hardware configuration macro definitions
 
 // Mock context and tensor structure to simulate the input
 typedef struct {
@@ -70,7 +79,6 @@ void test_cvkcv181x_tiu_and_int16() {
     p.b_high = &b_high;
     p.res_low = &res_low;
     p.res_high = &res_high;
-    p.layer_id = 2;
 
     // Call the function
     cvkcv181x_tiu_and_int16(&ctx, &p);
